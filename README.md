@@ -1,2 +1,2 @@
 # crypto-calamity
-CryptoCalamity
+Some articles on crypto and blockchain.
