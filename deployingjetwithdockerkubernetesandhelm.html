@@ -1,0 +1,207 @@
+﻿<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>deployingjetwithdockerkubernetesandhelm</title>
+  <link rel="stylesheet" href="https://stackedit.io/style.css" />
+</head>
+
+<body class="stackedit">
+  <div class="stackedit__left">
+    <div class="stackedit__toc">
+      
+<ul>
+<li>
+<ul>
+<li><a href="#deploying-jet-with-docker">Deploying Jet With Docker</a></li>
+<li><a href="#deploying-jet-with-kubernetes">Deploying Jet With Kubernetes</a></li>
+<li><a href="#deploying-jet-with-helm">Deploying Jet With Helm</a></li>
+</ul>
+</li>
+</ul>
+
+    </div>
+  </div>
+  <div class="stackedit__right">
+    <div class="stackedit__html">
+      <p><img src="http://hazelcast.com/images/logos/Hazelcast-Jet-Logo-Blue_Dark_400px.png" alt="enter image description here"></p>
+<p>This guide provides information about deploying Hazelcast Jet with Docker, Kubernetes, and Helm.</p>
+<h2 id="deploying-jet-with-docker">Deploying Jet With Docker</h2>
+<p>You can easily deploy your Hazelcast Jet projects using Docker containers.</p>
+<p>You’ll first need to pull an image from the Docker registry. For details on docker image pulls check out the following page: <a href="https://docs.docker.com/engine/reference/commandline/image_pull/">Docker Image Pull</a></p>
+<p>Hazelcast Jet has the following images on Docker:</p>
+<ul>
+<li>Hazelcast Jet</li>
+<li>Hazelcast Jet Enterprise</li>
+<li>Hazelcast Jet Management Center</li>
+</ul>
+<p>After you pull an image from the Docker registry, you can run your<br>
+image to start the Hazelcast Jet Management Center or a Hazelcast Jet instance with its default configuration.</p>
+<ul>
+<li>All repositories provide the latest stable releases; or you can pull<br>
+a specific release.</li>
+<li>You can specify environment variables when running the image.</li>
+<li>If you want to start a customized Hazelcast Jet instance, you can extend the Hazelcast Jet image by providing your own configuration file. This feature is provided as a Hazelcast Jet plugin.</li>
+</ul>
+<p>See the <a href="https://github.com/hazelcast/hazelcast-jet-docker">Hazelcast Jet Docker</a> and <a href="https://github.com/hazelcast/hazelcast-jet-management-center-docker">Hazelcast Jet Management Center Docker</a> on GitHub for details on configurations and usages.</p>
+<h2 id="deploying-jet-with-kubernetes">Deploying Jet With Kubernetes</h2>
+<p>Hazelcast Jet provides Kubernetes-ready Docker images which you can easily<br>
+deploy into Kubernetes environments.</p>
+<p>Hazelcast Jet Kubernetes-ready Docker images uses  a <a href="https://github.com/hazelcast/hazelcast-kubernetes">Hazelcast Kubernetes plugin</a> to discover other Hazelcast Jet members in the Kubernetes environment by interacting with the Kubernetes API.</p>
+<p>Using Kubernetes API requires granting certain permissions. Therefore, you may need to create a Role Based Access Control definition, <code>rbac.yaml</code>, with the following content: (Check out the <a href="https://github.com/hazelcast/hazelcast-kubernetes">Kubernetes plugin</a>  for more details.</p>
+<p><code>rbac.yaml</code></p>
+<pre class=" language-yaml"><code class="prism  language-yaml"><span class="token key atrule">apiVersion</span><span class="token punctuation">:</span> <span class="token punctuation">[</span>rbac.authorization.k8s.io/v1<span class="token punctuation">]</span>(http<span class="token punctuation">:</span>//rbac.authorization.k8s.io/v1)
+<span class="token key atrule">kind</span><span class="token punctuation">:</span> ClusterRoleBinding
+<span class="token key atrule">metadata</span><span class="token punctuation">:</span>
+<span class="token key atrule">name</span><span class="token punctuation">:</span> default<span class="token punctuation">-</span>cluster
+<span class="token key atrule">roleRef</span><span class="token punctuation">:</span>
+<span class="token key atrule">apiGroup</span><span class="token punctuation">:</span> <span class="token punctuation">[</span>rbac.authorization.k8s.io<span class="token punctuation">]</span>(http<span class="token punctuation">:</span>//rbac.authorization.k8s.io/)
+<span class="token key atrule">kind</span><span class="token punctuation">:</span> ClusterRole
+<span class="token key atrule">name</span><span class="token punctuation">:</span> view
+<span class="token key atrule">subjects</span><span class="token punctuation">:</span>
+<span class="token key atrule">kind</span><span class="token punctuation">:</span> ServiceAccount
+<span class="token key atrule">name</span><span class="token punctuation">:</span> default
+<span class="token key atrule">namespace</span><span class="token punctuation">:</span> default
+</code></pre>
+<p>You can grant the above required permissions with the following command:</p>
+<pre class=" language-bash"><code class="prism  language-bash">kubectl apply -f rbac.yaml
+</code></pre>
+<p>Once permissions are granted, you can configure Hazelcast Jet to use Kubernetes Discovery to discover other members:</p>
+<p><code>hazelcast-jet-config.yaml</code></p>
+<pre class=" language-yaml"><code class="prism  language-yaml"><span class="token key atrule">apiVersion</span><span class="token punctuation">:</span> v1
+<span class="token key atrule">kind</span><span class="token punctuation">:</span> ConfigMap
+<span class="token key atrule">metadata</span><span class="token punctuation">:</span>
+<span class="token key atrule">name</span><span class="token punctuation">:</span> hazelcast<span class="token punctuation">-</span>jet<span class="token punctuation">-</span>configuration
+<span class="token key atrule">data</span><span class="token punctuation">:</span>
+<span class="token key atrule">hazelcast.xml</span><span class="token punctuation">:</span> <span class="token punctuation">|</span><span class="token punctuation">-</span>
+&lt;<span class="token punctuation">?</span>xml version="1.0" encoding="UTF<span class="token punctuation">-</span>8"<span class="token punctuation">?</span><span class="token punctuation">&gt;</span>
+&lt;hazelcast xsi<span class="token punctuation">:</span>schemaLocation="<span class="token punctuation">[</span>http<span class="token punctuation">:</span>//www.hazelcast.com/schema/config<span class="token punctuation">]</span>(http<span class="token punctuation">:</span>//www.hazelcast.com/schema/config)  hazelcast<span class="token punctuation">-</span>config<span class="token punctuation">-</span>3.10.xsd"
+xmlns="<span class="token punctuation">[</span>http<span class="token punctuation">:</span>//www.hazelcast.com/schema/config<span class="token punctuation">]</span>(http<span class="token punctuation">:</span>//www.hazelcast.com/schema/config)"
+xmlns<span class="token punctuation">:</span>xsi="<span class="token punctuation">[</span>http<span class="token punctuation">:</span>//www.w3.org/2001/XMLSchema<span class="token punctuation">-</span>instance<span class="token punctuation">]</span>(http<span class="token punctuation">:</span>//www.w3.org/2001/XMLSchema<span class="token punctuation">-</span>instance)"<span class="token punctuation">&gt;</span>
+&lt;properties<span class="token punctuation">&gt;</span>
+&lt;property name="hazelcast.discovery.enabled"<span class="token punctuation">&gt;</span>true&lt;/property<span class="token punctuation">&gt;</span>
+&lt;/properties<span class="token punctuation">&gt;</span>
+&lt;network<span class="token punctuation">&gt;</span>
+&lt;join<span class="token punctuation">&gt;</span>
+&lt;multicast enabled="false"/<span class="token punctuation">&gt;</span>
+&lt;tcp<span class="token punctuation">-</span>ip enabled="false" /<span class="token punctuation">&gt;</span>
+&lt;discovery<span class="token punctuation">-</span>strategies<span class="token punctuation">&gt;</span>
+&lt;discovery<span class="token punctuation">-</span>strategy enabled="true" class="com.hazelcast.kubernetes.HazelcastKubernetesDiscoveryStrategy"<span class="token punctuation">&gt;</span>
+&lt;properties<span class="token punctuation">&gt;</span>
+&lt;property name="service<span class="token punctuation">-</span>name"<span class="token punctuation">&gt;</span>hazelcast<span class="token punctuation">-</span>jet<span class="token punctuation">-</span>service&lt;/property<span class="token punctuation">&gt;</span>
+&lt;property name="namespace"<span class="token punctuation">&gt;</span>default&lt;/property<span class="token punctuation">&gt;</span>
+&lt;/properties<span class="token punctuation">&gt;</span>
+&lt;/discovery<span class="token punctuation">-</span>strategy<span class="token punctuation">&gt;</span>
+&lt;/discovery<span class="token punctuation">-</span>strategies<span class="token punctuation">&gt;</span>
+&lt;/join<span class="token punctuation">&gt;</span>
+&lt;/network<span class="token punctuation">&gt;</span>
+&lt;/hazelcast<span class="token punctuation">&gt;</span>
+</code></pre>
+<p>The following command will create a ConfigMap object in the Kubernetes Cluster. This object holds the Kubernetes Discovery enabled Hazelcast Jet configuration (this configuration is used when creating pods in the following section):</p>
+<pre class=" language-bash"><code class="prism  language-bash">kubectl apply -f hazelcast-jet-config.yaml
+</code></pre>
+<p>Create a StatefulSet, which manages Pods that are based on an identical container spec, and our Service, an abstraction that defines a logical set of Pods and a policy used to access them, with the following content.</p>
+<p><code>hazelcast-jet.yaml</code></p>
+<pre class=" language-yaml"><code class="prism  language-yaml"><span class="token key atrule">apiVersion</span><span class="token punctuation">:</span> apps/v1
+<span class="token key atrule">kind</span><span class="token punctuation">:</span> StatefulSet
+<span class="token key atrule">metadata</span><span class="token punctuation">:</span>
+<span class="token key atrule">name</span><span class="token punctuation">:</span> hazelcast<span class="token punctuation">-</span>jet
+<span class="token key atrule">labels</span><span class="token punctuation">:</span>
+<span class="token key atrule">app</span><span class="token punctuation">:</span> hazelcast<span class="token punctuation">-</span>jet
+<span class="token key atrule">spec</span><span class="token punctuation">:</span>
+<span class="token key atrule">replicas</span><span class="token punctuation">:</span> <span class="token number">2</span>
+<span class="token key atrule">serviceName</span><span class="token punctuation">:</span> hazelcast<span class="token punctuation">-</span>jet<span class="token punctuation">-</span>service
+<span class="token key atrule">selector</span><span class="token punctuation">:</span>
+<span class="token key atrule">matchLabels</span><span class="token punctuation">:</span>
+<span class="token key atrule">app</span><span class="token punctuation">:</span> hazelcast<span class="token punctuation">-</span>jet
+<span class="token key atrule">template</span><span class="token punctuation">:</span>
+<span class="token key atrule">metadata</span><span class="token punctuation">:</span>
+<span class="token key atrule">labels</span><span class="token punctuation">:</span>
+<span class="token key atrule">app</span><span class="token punctuation">:</span> hazelcast<span class="token punctuation">-</span>jet
+<span class="token key atrule">spec</span><span class="token punctuation">:</span>
+<span class="token key atrule">containers</span><span class="token punctuation">:</span>
+<span class="token punctuation">-</span> <span class="token key atrule">name</span><span class="token punctuation">:</span> hazelcast<span class="token punctuation">-</span>jet
+<span class="token key atrule">image</span><span class="token punctuation">:</span> hazelcast/hazelcast<span class="token punctuation">-</span>jet<span class="token punctuation">:</span>latest
+<span class="token key atrule">imagePullPolicy</span><span class="token punctuation">:</span> IfNotPresent
+<span class="token key atrule">ports</span><span class="token punctuation">:</span>
+<span class="token punctuation">-</span> <span class="token key atrule">name</span><span class="token punctuation">:</span> hazelcast<span class="token punctuation">-</span>jet
+<span class="token key atrule">containerPort</span><span class="token punctuation">:</span> <span class="token number">5701</span>
+<span class="token key atrule">livenessProbe</span><span class="token punctuation">:</span>
+<span class="token key atrule">httpGet</span><span class="token punctuation">:</span>
+<span class="token key atrule">path</span><span class="token punctuation">:</span> /hazelcast/health/node<span class="token punctuation">-</span>state
+<span class="token key atrule">port</span><span class="token punctuation">:</span> <span class="token number">5701</span>
+<span class="token key atrule">initialDelaySeconds</span><span class="token punctuation">:</span> <span class="token number">30</span>
+<span class="token key atrule">periodSeconds</span><span class="token punctuation">:</span> <span class="token number">10</span>
+<span class="token key atrule">timeoutSeconds</span><span class="token punctuation">:</span> <span class="token number">5</span>
+<span class="token key atrule">successThreshold</span><span class="token punctuation">:</span> <span class="token number">1</span>
+<span class="token key atrule">failureThreshold</span><span class="token punctuation">:</span> <span class="token number">3</span>
+<span class="token key atrule">readinessProbe</span><span class="token punctuation">:</span>
+<span class="token key atrule">httpGet</span><span class="token punctuation">:</span>
+<span class="token key atrule">path</span><span class="token punctuation">:</span> /hazelcast/health/node<span class="token punctuation">-</span>state
+<span class="token key atrule">port</span><span class="token punctuation">:</span> <span class="token number">5701</span>
+<span class="token key atrule">initialDelaySeconds</span><span class="token punctuation">:</span> <span class="token number">30</span>
+<span class="token key atrule">periodSeconds</span><span class="token punctuation">:</span> <span class="token number">10</span>
+<span class="token key atrule">timeoutSeconds</span><span class="token punctuation">:</span> <span class="token number">1</span>
+<span class="token key atrule">successThreshold</span><span class="token punctuation">:</span> <span class="token number">1</span>
+<span class="token key atrule">failureThreshold</span><span class="token punctuation">:</span> <span class="token number">1</span>
+<span class="token key atrule">voumeMounts</span><span class="token punctuation">:</span>
+<span class="token punctuation">-</span> <span class="token key atrule">name</span><span class="token punctuation">:</span> hazelcast<span class="token punctuation">-</span>jet<span class="token punctuation">-</span>storage
+<span class="token key atrule">mountPath</span><span class="token punctuation">:</span> /data/hazelcast<span class="token punctuation">-</span>jet
+<span class="token key atrule">env</span><span class="token punctuation">:</span>
+<span class="token punctuation">-</span> <span class="token key atrule">name</span><span class="token punctuation">:</span> JAVA_OPTS
+<span class="token key atrule">value</span><span class="token punctuation">:</span> <span class="token string">"-Dhazelcast.rest.enabled=true -Dhazelcast.config=/data/hazelcast-jet/hazelcast.xml"</span>
+<span class="token key atrule">volumes</span><span class="token punctuation">:</span>
+<span class="token punctuation">-</span> <span class="token key atrule">name</span><span class="token punctuation">:</span> hazelcast<span class="token punctuation">-</span>jet<span class="token punctuation">-</span>storage
+<span class="token key atrule">configMap</span><span class="token punctuation">:</span>
+<span class="token key atrule">name</span><span class="token punctuation">:</span> hazelcast<span class="token punctuation">-</span>jet<span class="token punctuation">-</span>configuration
+<span class="token punctuation">---</span>
+<span class="token key atrule">apiVersion</span><span class="token punctuation">:</span> v1
+<span class="token key atrule">kind</span><span class="token punctuation">:</span> Service
+<span class="token key atrule">metadata</span><span class="token punctuation">:</span>
+<span class="token key atrule">name</span><span class="token punctuation">:</span> hazelcast<span class="token punctuation">-</span>jet<span class="token punctuation">-</span>service
+<span class="token key atrule">spec</span><span class="token punctuation">:</span>
+<span class="token key atrule">selector</span><span class="token punctuation">:</span>
+<span class="token key atrule">app</span><span class="token punctuation">:</span> hazelcast<span class="token punctuation">-</span>jet
+<span class="token key atrule">ports</span><span class="token punctuation">:</span>
+<span class="token punctuation">-</span> <span class="token key atrule">protocol</span><span class="token punctuation">:</span> TCP
+<span class="token key atrule">port</span><span class="token punctuation">:</span> <span class="token number">5701</span>
+</code></pre>
+<pre class=" language-bash"><code class="prism  language-bash">kubectl apply -f hazelcast-jet.yaml
+</code></pre>
+<p>After that you can inspect pod logs to see that they formed a cluster with the following command:</p>
+<pre class=" language-bash"><code class="prism  language-bash">kubectl logs hazelcast-jet-0
+</code></pre>
+<p>The output log should be similar to the one below:</p>
+<pre class=" language-bash"><code class="prism  language-bash">Nov 15, 2018 9:39:15 AM com.hazelcast.internal.cluster.ClusterService
+
+INFO: <span class="token punctuation">[</span>172.17.0.2<span class="token punctuation">]</span>:5701 <span class="token punctuation">[</span>dev<span class="token punctuation">]</span> <span class="token punctuation">[</span>0.7<span class="token punctuation">]</span>
+
+Members <span class="token punctuation">{</span>size:2, ver:2<span class="token punctuation">}</span> <span class="token punctuation">[</span>
+
+Member <span class="token punctuation">[</span>172.17.0.2<span class="token punctuation">]</span>:5701 - d935437e-143e-4e3f-81d6-f3ece16eb23e this
+
+Member <span class="token punctuation">[</span>172.17.0.6<span class="token punctuation">]</span>:5701 - 88472d6c-1cae-4b0d-9681-f6da6199bc9c
+
+<span class="token punctuation">]</span>
+</code></pre>
+<p>For more detailed deployment information and how to submit Hazelcast Jet jobs to your cluster, check out the <a href="https://github.com/hazelcast/hazelcast-jet-code-samples/tree/master/integration/kubernetes">Integration code sample.</a></p>
+<h2 id="deploying-jet-with-helm">Deploying Jet With Helm</h2>
+<p>Hazelcast Jet provides Helm charts which is an easy way to package and deploy applications on Kubernetes. In order to deploy Hazelcast Jet with Helm, the Hazelcast Helm Charts repository need to be added to Helm with the following command:</p>
+<pre class=" language-bash"><code class="prism  language-bash">helm repo add hazelcast  <span class="token punctuation">[</span>https://hazelcast.github.io/charts/<span class="token punctuation">]</span><span class="token punctuation">(</span>https://hazelcast.github.io/charts/<span class="token punctuation">)</span>
+</code></pre>
+<pre class=" language-bash"><code class="prism  language-bash">helm repo update
+</code></pre>
+<p>You can install the chart using the following command:</p>
+<pre class=" language-bash"><code class="prism  language-bash">helm <span class="token function">install</span> hazelcast/hazelcast-jet
+</code></pre>
+<p>For a more detailed configuration, check out  the  <a href="https://github.com/hazelcast/charts/tree/master/stable/hazelcast-jet">Jet Helm Chart.<br>
+</a><br>
+Check out the Kubernetes <a href="https://github.com/hazelcast/charts#troubleshooting-in-kubernetes-environments%5BTroubleshooting">Troubleshooting section</a> if you encounter any issues.</p>
+
+    </div>
+  </div>
+</body>
+
+</html>
